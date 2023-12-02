@@ -1,4 +1,5 @@
-import {useState} from "react";
+import { useState } from "react";
+import { createAuthUserWithEmailAndPassword,createUserDocumentFromAuth } from "../../utils/firebase/firebase.utils";
 
 const defaultFormFields= {
     displayName: '',
@@ -6,16 +7,45 @@ const defaultFormFields= {
     password: '',
     confirmPassword: '',
 }
+
 const SignUpForm = () =>{
     const [formFields, setFormFields] = useState(defaultFormFields);
     const {displayName, email, password, confirmPassword} = formFields;
 
     console.log(formFields);
 
-    const handleChange = (event) => {
-        const {name, value}= event.target;
-        setFormFields({...formFields, [name]: value})
+    const resetFields = () => {
+        setFormFields(defaultFormFields)
+    };
+    const handleSubmit = async (event) => {
+        event.preventDefault();
 
+        if(password===confirmPassword){
+            try{
+                const {user} = await createAuthUserWithEmailAndPassword(email, password);
+                await createUserDocumentFromAuth(user, {displayName});
+                resetFields();
+                console.log('new user created')
+
+            }catch(error){
+                if(error.code==='auth/email-already-in-use'){
+                    alert('Can not create user, email already in use')
+                }
+                if(error.code==='auth/weak-password'){
+                    alert('Can not create user, password too weak')
+                }
+                console.log('user creation encountered an error', error);
+            }
+            
+        }else{
+            alert("Passwords do not match");
+            return;
+        }
+    };
+
+    const handleChange = (event) => {
+        const {name, value} = event.target;
+        setFormFields({...formFields, [name]: value})
     };
 
     return(
@@ -34,10 +64,10 @@ const SignUpForm = () =>{
                 <label>Confirm Password</label>
                 <input type='password' required onChange={handleChange} name='confirmPassword' value={confirmPassword}/>
 
-                <button type='submit'>Sign Up</button>
+                <button type='submit' onClick={handleSubmit}>Sign Up</button>
             </form>
         </div>
-    )
+    );
 }
 
 export default SignUpForm;
